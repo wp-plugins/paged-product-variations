@@ -4,7 +4,7 @@
 	Plugin Name: WooCommerce Paged Product Variations
 	Plugin URI: http://designloaf.com
 	Description: A plugin designed to make variation boxes more manageable for large store owners.
-	Version: 1.0.1
+	Version: 1.0.2
 	Author: Logan Graham
 	Author URI: http://twitter.com/loganpgraham
 	License: GPL2
@@ -38,16 +38,13 @@ class WooCommerce_Paged_Product_Variations {
 
 		$post_id = intval( $_POST['post_id'] );
 
-		$page_number = intval( $_POST['page_number'] );
-
 		$args = array(
 			'post_type'      => 'product_variation',
 			'post_status'    => array( 'private', 'publish' ),
 			'posts_per_page' => apply_filters( 'paged_variations_posts_per_page', 10 ),
 			'orderby'        => 'menu_order',
 			'order'          => 'asc',
-			'post_parent'    => $post_id,
-			'paged'          => $page_number
+			'post_parent'    => $post_id
 		);
 
 		$variations = new WP_Query( $args );
@@ -198,6 +195,19 @@ class WooCommerce_Paged_Product_Variations {
 					$variation_data['_manage_stock'] = 'yes';
 				}
 
+				// Minimal backwards compat for older versions
+				if(defined('WC_VERSION') && version_compare(WC_VERSION, '2.3.0','<')){
+					// Add some backwards compatability for additional fields (post status, etc)
+					$variation_data['variation_post_status'] = $variation->post_status;
+
+					// Add back additional meta fields which were available prior to 2.3.x
+					$variation_data = array_merge($variation_meta,$variation_data);
+					$variation_data['image_id'] = absint( $variation_data['_thumbnail_id'] );
+
+					// Fill fields like 2.3.x and include some additional ones for pre 2.3.x
+					extract($variation_data);
+				}
+
 				$file = WP_PLUGIN_DIR . '/woocommerce/includes/admin/meta-boxes/views/html-variation-admin.php' ;
 				include($file);
 
@@ -212,7 +222,7 @@ class WooCommerce_Paged_Product_Variations {
 	 * Add scripts required for paged variations
 	 */
 	function enqueue_scripts(){
-		wp_enqueue_script( 'wc_paged_variations' , plugins_url( '/assets/js/wc-paged-variations.js' , __FILE__ ) , array('jquery') , '1.0.0' );
+		wp_enqueue_script( 'wc_paged_variations' , plugins_url( '/assets/js/wc-paged-variations.js' , __FILE__ ) , array('jquery') , '1.0.1' );
 		?>
 		<style>
 			.toolbar.variation_pages {
